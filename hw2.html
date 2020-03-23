@@ -114,7 +114,7 @@
             // collision detection
             for (i = 0; i < walls.length; i++) {
                 let wall = walls[i];
-                if (pos.clone().sub(wall.point).dot(wall.normal) < eps + 15) {
+                if (pos.clone().sub(wall.point).dot(wall.normal) < eps + 15 && pos.clone().sub(wall.point).dot(wall.normal) > eps - 15) {
                     var vN = wall.normal.clone().multiplyScalar(vel.dot(wall.normal));
                     var vT = vel.clone().sub(vN);
                     // vel = vT + (- CR).vN
