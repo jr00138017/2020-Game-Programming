@@ -38,6 +38,9 @@
         var k = 10; //人物大小
         var opc = 0.5;
         var head, arm, torso, leg;
+        /////
+        var theta = 0;
+        ///
         /////////////////////////////////
         var T = 2; //擺動速度 越大越慢
         var theta1 = 0,
@@ -229,14 +232,21 @@
 
         function animate() {
 
-
-
+            
+            
+            
+            
+            
             keyframe(clock.getElapsedTime());
             //	head.rotation.y = Math.PI/6;
             rightarm.rotation.y = intKey[0]; //gcontrol.theta1;
             leftarm.rotation.y = intKey[1]; //gcontrol.theta2;
             rightleg.rotation.y = intKey[2];
             leftleg.rotation.y = intKey[3];
+            theta += 0.01;
+            mine.rotation.y = Math.PI / 2 + theta;
+            mine.position.set(50 * Math.cos(theta), 0, -50 * Math.sin(theta));
+    
             requestAnimationFrame(animate);
             render();
 
