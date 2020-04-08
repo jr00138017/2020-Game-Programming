@@ -35,10 +35,37 @@
 
     <script>
         var camera, scene, renderer;
-        var k = 10;
+        var k = 10; //人物大小
         var opc = 0.5;
         var head, arm, torso, leg;
-
+        /////////////////////////////////
+        var T = 2; //擺動速度 越大越慢
+        var theta1 = 0,
+            theta2 = 0,
+            theta3 = 0,
+            theta4 = 0;
+        
+        var pose1 = {
+            theta1: .5,
+            theta2: -.8,
+            theta3: .8,
+            theta4: -.8
+        }
+        var pose2 = {
+            theta1: -.8,
+            theta2: .8,
+            theta3: -.8,
+            theta4: .8
+        }
+        var keys = [
+            [0, pose1],
+            [0.5, pose2],
+            [1, pose1]
+        ];
+        var intkey = [];
+        var clock = new THREE.Clock();
+        var ts = clock.getElapsedTime();
+        ////////////////////////////////////
         init();
         animate();
 
@@ -182,13 +209,34 @@
 
         }
 
+        function keyframe(t) {
+
+           
+            var s = ((t - ts) % T) / T;
+
+            for (var i = 1; i < keys.length; i++) {
+                if (keys[i][0] > s) break;
+            }
+            // take i-1
+            var ii = i - 1;
+            var a = (s - keys[ii][0]) / (keys[ii + 1][0] - keys[ii][0]);
+            intKey = [keys[ii][1].theta1 * (1 - a) + keys[ii + 1][1].theta1 * a,
+                      keys[ii][1].theta2 * (1 - a) + keys[ii + 1][1].theta2 * a,
+                      keys[ii][1].theta3 * (1 - a) + keys[ii + 1][1].theta3 * a,
+                      keys[ii][1].theta4 * (1 - a) + keys[ii + 1][1].theta4 * a,];
+
+        }
+
         function animate() {
 
+
+
+            keyframe(clock.getElapsedTime());
             //	head.rotation.y = Math.PI/6;
-            rightarm.rotation.y = gcontrol.theta1;
-            leftarm.rotation.y = gcontrol.theta2;
-            rightleg.rotation.y = gcontrol.theta3;
-            leftleg.rotation.y = gcontrol.theta4;
+            rightarm.rotation.y = intKey[0]; //gcontrol.theta1;
+            leftarm.rotation.y = intKey[1]; //gcontrol.theta2;
+            rightleg.rotation.y = intKey[2];
+            leftleg.rotation.y = intKey[3];
             requestAnimationFrame(animate);
             render();
 
@@ -208,30 +256,51 @@
                     },
                     "key1": {
                         "0": {
-                            "theta1": 0.5,
+                            "theta1": 0.8,
                             "theta2": -0.8,
-                            "theta3": 0.01,
-                            "theta4": 0.01
+                            "theta3": 0.8,
+                            "theta4": -0.8
                         }
                     },
                     "key2": {
                         "0": {
                             "theta1": -0.8,
                             "theta2": 0.8,
-                            "theta3": 0.01,
+                            "theta3": -0.8,
+                            "theta4": 0.8
+                        }
+                    },
+
+                    "key3": {
+                        "0": {
+                            "theta1": 0.8,
+                            "theta2": -0.8,
+                            "theta3": 0.8,
+                            "theta4": -0.8
+                        }
+                    },
+
+                    "key4": {
+                        "0": {
+                            "theta1": -0.8,
+                            "theta2": 0.8,
+                            "theta3": -0.01,
                             "theta4": 0.01
                         }
                     }
                 },
+
                 "closed": false,
                 "folders": {}
             }
         }
-            function render() {
-                renderer.render(scene, camera);
-            }
-    </script>  
-    
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+    </script>
+
 </body>
 
 </html>
