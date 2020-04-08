@@ -21,7 +21,6 @@
         body {
             overflow: hidden;
         }
-
     </style>
 
 </head>
@@ -31,7 +30,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js"></script>
     <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-
+    <script src="https://raw.githack.com/mrdoob/three.js/dev/examples/js/misc/Gyroscope.js"></script>
 
     <script>
         var camera, scene, renderer;
@@ -47,7 +46,7 @@
             theta2 = 0,
             theta3 = 0,
             theta4 = 0;
-        
+
         var pose1 = {
             theta1: .5,
             theta2: -.8,
@@ -82,7 +81,12 @@
             document.body.appendChild(renderer.domElement);
 
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
-            camera.position.z = 500;
+            camera.position.z =400;
+            camera.position.y = 200;
+
+            var gyro = new THREE.Gyroscope();
+            gyro.add(camera);
+            
             let controls = new THREE.OrbitControls(camera, renderer.domElement);
 
             ////////////////////////////////////////////////////////////////
@@ -90,6 +94,7 @@
             scene.add(gridXZ);
             ////////////////
             mine = new THREE.Group();
+          
             head = makeHead();
             torso = makeTorso();
             mine.add(head, torso);
@@ -116,6 +121,7 @@
             rightleg.position.set(-0.63 * k, 4.09 * k, 0);
             mine.add(rightleg);
             //
+            
             scene.add(mine);
             //
             rightarm.rotation.z = -Math.PI / 2;
@@ -129,6 +135,7 @@
             leftleg.rotation.order = 'ZYX';
             rightleg.rotation.order = 'ZYX';
             /////////////////////////////////////
+            mine.add(gyro);
             gcontrol = {
                 theta1: 0.01,
                 theta2: 0.01,
@@ -214,7 +221,7 @@
 
         function keyframe(t) {
 
-           
+
             var s = ((t - ts) % T) / T;
 
             for (var i = 1; i < keys.length; i++) {
@@ -224,19 +231,28 @@
             var ii = i - 1;
             var a = (s - keys[ii][0]) / (keys[ii + 1][0] - keys[ii][0]);
             intKey = [keys[ii][1].theta1 * (1 - a) + keys[ii + 1][1].theta1 * a,
-                      keys[ii][1].theta2 * (1 - a) + keys[ii + 1][1].theta2 * a,
-                      keys[ii][1].theta3 * (1 - a) + keys[ii + 1][1].theta3 * a,
-                      keys[ii][1].theta4 * (1 - a) + keys[ii + 1][1].theta4 * a,];
+                keys[ii][1].theta2 * (1 - a) + keys[ii + 1][1].theta2 * a,
+                keys[ii][1].theta3 * (1 - a) + keys[ii + 1][1].theta3 * a,
+                keys[ii][1].theta4 * (1 - a) + keys[ii + 1][1].theta4 * a,
+            ];
 
         }
 
+        var curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-500, 200, 900),
+            new THREE.Vector3(-100, 400, 400),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(600, -600, 0),
+            new THREE.Vector3(900, -400, 600),
+            new THREE.Vector3(1200, -200, 300),
+        ]);
+
+        var t = 0;
+
         function animate() {
 
-            
-            
-            
-            
-            
+
+
             keyframe(clock.getElapsedTime());
             //	head.rotation.y = Math.PI/6;
             rightarm.rotation.y = intKey[0]; //gcontrol.theta1;
@@ -244,9 +260,12 @@
             rightleg.rotation.y = intKey[2];
             leftleg.rotation.y = intKey[3];
             theta += 0.01;
-            mine.rotation.y = Math.PI / 2 + theta;
+            mine.rotation.y = Math.PI + theta;
             mine.position.set(50 * Math.cos(theta), 0, -50 * Math.sin(theta));
-    
+
+
+
+
             requestAnimationFrame(animate);
             render();
 
@@ -306,11 +325,11 @@
         }
 
         function render() {
+
+
+
             renderer.render(scene, camera);
         }
-
     </script>
 
-</body>
-
-</html>
+</body></html>
