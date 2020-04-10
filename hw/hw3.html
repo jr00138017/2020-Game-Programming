@@ -34,7 +34,7 @@
     <audio controls id="bgm" loop>
         <source src="/sound/8bitbgm.mp3" type="audio/mpeg">
     </audio>
-    <Embed Src="/sound/8bitbgm.mp3" loop="1" autoplay="true" Height="90 Hidden=True"></embed>
+    <Embed Src="/sound/8bitbgm.mp3" loop="1" autoplay="true" Height="90" Hidden=True></embed>
     <script>
         var bgm;
 
@@ -79,7 +79,7 @@
         function init() {
             bgm = document.getElementById('bgm');
             bgm.volume = 1.0;
-           
+
             /*var playPromise = bgm.play();
             
             if (playPromise !== undefined) {
@@ -164,19 +164,19 @@
                 theta4: 0.01
             };
 
-           /* var gui = new dat.GUI({
-                load: loadJSON(),
-                preset: 'key1'
-            });
-            gui.domElement.id = 'gui';
+            /* var gui = new dat.GUI({
+                 load: loadJSON(),
+                 preset: 'key1'
+             });
+             gui.domElement.id = 'gui';
 
-            gui.remember(gcontrol);
+             gui.remember(gcontrol);
 
-            gui.add(gcontrol, 'theta1', -0.8, 0.5);
-            gui.add(gcontrol, 'theta2', -0.8, 0.8);
-            gui.add(gcontrol, 'theta3', -0.8, 0.8);
-            gui.add(gcontrol, 'theta4', -0.8, 0.8);
-            */
+             gui.add(gcontrol, 'theta1', -0.8, 0.5);
+             gui.add(gcontrol, 'theta2', -0.8, 0.8);
+             gui.add(gcontrol, 'theta3', -0.8, 0.8);
+             gui.add(gcontrol, 'theta4', -0.8, 0.8);
+             */
         }
 
         function makeArm() {
@@ -266,7 +266,7 @@
 
             keyframe(clock.getElapsedTime());
             //	head.rotation.y = Math.PI/6;
-            
+
             rightarm.rotation.y = intKey[0]; //gcontrol.theta1;
             leftarm.rotation.y = intKey[1]; //gcontrol.theta2;
             rightleg.rotation.y = intKey[2];
