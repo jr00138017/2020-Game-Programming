@@ -48,45 +48,78 @@
         <br>
         <br> ( generic CCD Solver )
     </div>
-
+    <audio id="collisionsound" style="display: none">
+        <source src="../sound/BULLET.wav" type="audio/wav">
+    </audio>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/107/three.min.js"></script>
     <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
     <script src="https://jyunming-chen.github.io/game3js/js/ccdsys.js"></script>
     <script>
         var scene, renderer, camera;
 
-        var puck;
+        var puck, puck_1;
         var raycaster;
         var mouse = new THREE.Vector2();
         var pickables = [];
 
         var clock = new THREE.Clock();
         var now = 0;
-        var previousEnd = new THREE.Vector3();
 
+        var previousEndPuck = new THREE.Vector3();
+        var previousEnd = new THREE.Vector3();
+        var previousEnd1 = new THREE.Vector3();
+        /////
+        var vel = new THREE.Vector3(),
+            vel1 = new THREE.Vector3(),
+            end = new THREE.Vector3(),
+            end1 = new THREE.Vector3();
+        var hit = false;
+        /////////////////////////
         var walls = [];
+
+        class wall {
+            constructor(l, w, h, point, normal) {
+                this.l = l;
+                this.w = w;
+                this.h = h;
+                this.obj = new THREE.Mesh(new THREE.BoxGeometry(this.l, this.w, this.h), new THREE.MeshPhongMaterial({
+                    color: 'gray'
+                }));
+                this.obj.point = new THREE.Vector3(point.x, point.y, point.z);
+                this.obj.normal = new THREE.Vector3(normal.x, normal.y, normal.z);
+            }
+
+            goToPosition(x, y, z) {
+                this.obj.position.set(x, y, z);
+            }
+            getPoint() {
+                return this.obj.point;
+            }
+            getNormal() {
+                return this.obj.normal;
+            }
+
+        }
         /////////////////////////
         var twoLinker0, twoLinker1;
 
         class TwoLinker {
             constructor(L1, L2) {
                 this.theta1 = 0;
-                this.theta2 = 0,
-                    this.target = new THREE.Vector3();
-
-                // build arm ...
+                this.theta2 = 0;
+                this.target = new THREE.Vector3();
+                this.puck = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 10, 20), new THREE.MeshBasicMaterial({
+                    color: 0xff22ff
+                }));
                 this.body = new THREE.Object3D();
-
                 this.link1 = makeLink(L1);
                 this.link2 = makeLink(L2);
-                this.endBall = new THREE.Mesh(new THREE.SphereGeometry(15, 20, 20), new THREE.MeshNormalMaterial());
-
 
                 this.body.add(this.link1);
                 this.link1.add(this.link2);
-                this.link2.add(this.endBall);
+                this.link2.add(this.puck);
                 this.link2.position.set(L1, 0, 0);
-                this.endBall.position.set(L2, 0, 0);
+                this.puck.position.set(L2, 0, 0);
 
                 // base
                 let cyl_geom = new THREE.CylinderGeometry(10, 10, 6, 32);
@@ -137,9 +170,10 @@
                 antialias: true
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x888888);
+            renderer.setClearColor(0x000060);
 
             scene = new THREE.Scene();
+
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 3000);
             camera.position.y = 400;
             camera.position.z = 400;
@@ -147,24 +181,52 @@
             document.body.appendChild(renderer.domElement);
             let controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-            var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+            var gridXZ = new THREE.GridHelper(250, 20, 'red', 'black');
             scene.add(gridXZ);
             window.addEventListener('resize', onWindowResize, false);
-
+            //////////////////////////////////
+            //要讓牆壁有顏色要有燈
+            var light = new THREE.AmbientLight(0x404040, 5); // soft white light
+            scene.add(light);
             /////////////////////////////////////////////////////////////////////
-            let plane = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({
+            var material = new THREE.LineBasicMaterial({
+                color: 0xffff00
+            });
+            var geometry = new THREE.Geometry();
+            geometry.vertices.push(new THREE.Vector3(-150, 0, 0));
+            geometry.vertices.push(new THREE.Vector3(150, 0, 0));
+            var line = new THREE.Line(geometry, material);
+            scene.add(line);
+            /////////////////////////////////////////////////////////////////////
+            let plane = new THREE.Mesh(new THREE.PlaneGeometry(300, 400), new THREE.MeshBasicMaterial({
                 transparent: true,
-                opacity: 0.5,
+                opacity: 1,
                 visible: true,
-                color: 'pink'
+                color: 'black'
             }));
             scene.add(plane);
             plane.rotation.x = -Math.PI / 2;
             pickables = [plane];
-
+            //////////////////////////需要兩個puck 一個為滑鼠位置 一個為移動的puck
             puck = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 2, 20), new THREE.MeshNormalMaterial());
             scene.add(puck);
+            //
+            puck_1 = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 10, 20),
+                new THREE.MeshLambertMaterial({
+                    color: 0xff5500
+                }));
+            scene.add(puck_1);
+            //
+            puckLight = new THREE.PointLight(0x00A666, 1, 100);
+            scene.add(puckLight);
+            //
+            puck_1.force = new THREE.Vector3(0, 0, 0);
+            puck_1.vel = new THREE.Vector3(0, 0, 0);
+            puck_1.pos = new THREE.Vector3();
 
+
+
+            ////////////////////////
             raycaster = new THREE.Raycaster();
             document.addEventListener('mousemove', onDocumentMouseDown, false);
 
@@ -172,7 +234,7 @@
             twoLinker0 = new TwoLinker(50, 50); //twoLinker.init();
             scene.add(twoLinker0.body);
 
-            twoLinker0.body.position.set(0, 0, 100);
+            twoLinker0.body.position.set(0, 5, 200);
 
             // setting ccdSys
             twoLinker0.ccdSys = new CCDSys(fk)
@@ -184,38 +246,50 @@
             twoLinker1 = new TwoLinker(50, 50); //twoLinker.init();
             scene.add(twoLinker1.body);
 
-            twoLinker1.body.position.set(0, 0, -100);
+            twoLinker1.body.position.set(0, 5, -200);
             //twoLinker1.body.rotation.y = Math.PI;  /* ******** */
 
             // setting ccdSys
-            twoLinker1.ccdSys = new CCDSys(fk)
+            twoLinker1.ccdSys = new CCDSys(fk);
             // axes are in local frame of twolink arm
-            twoLinker1.ccdSys.setCCDAxis(new THREE.Vector3(0, 1, 0), 0)
-            twoLinker1.ccdSys.setCCDAxis(new THREE.Vector3(0, 1, 0), 1, -3.1, -0.01)
+            twoLinker1.ccdSys.setCCDAxis(new THREE.Vector3(0, 1, 0), 0);
+            twoLinker1.ccdSys.setCCDAxis(new THREE.Vector3(0, 1, 0), 1, -3.1, -0.01);
 
-            //////////////////////////
+
+
+
+            /////////////////////////////
+            //wall
+            var walla;
             for (i = 0; i < 4; i++) {
-                walls[i] = new THREE.Mesh(new THREE.BoxGeometry(10, 20, 200), new THREE.MeshPhongMaterial({
-                    color: 0xD0D0D0
-                }));
+                switch (i) {
+                    case 0:
+                        walla = new wall(10, 20, 400, new THREE.Vector3(150, 0, 0),
+                            new THREE.Vector3(-1, 0, 0));
+                        walla.goToPosition(155, 10, 0);
+                        break;
+                    case 1:
+                        walla = new wall(10, 20, 400, new THREE.Vector3(-150, 0, 0),
+                            new THREE.Vector3(1, 0, 0));
+                        walla.goToPosition(-155, 10, 0);
+                        break;
+                    case 2:
+                        walla = new wall(300, 20, 10, new THREE.Vector3(0, 0, 200),
+                            new THREE.Vector3(0, 0, -1));
+                        walla.goToPosition(0, 10, 205);
+                        break;
+                    case 3:
+                        walla = new wall(300, 20, 10, new THREE.Vector3(0, 0, 200),
+                            new THREE.Vector3(-1, 0, 0));
+                        walla.goToPosition(0, 10, -205);
+                        break;
+                }
+                walls.push(walla);
             }
-            walls[0].point = new THREE.Vector3(100, 0, 0);
-            walls[0].normal = new THREE.Vector3(-1, 0, 0);
-            walls[0].position.set(105, 10, 0);
-            
-            walls[1].point = new THREE.Vector3(-105, 10, 0);
-            walls[1].normal = new THREE.Vector3(1, 0, 0);
-            walls[1].position.set(-100, 0, 0);
-            
-            walls[2].point = new THREE.Vector3(0, 10, -100);
-            walls[2].normal = new THREE.Vector3(0, 0, -1);
-            walls[2].position.set(0, 10, -105);
-            
-            walls[3].point = new THREE.Vector3(0, 10, 105);
-            walls[3].normal = new THREE.Vector3(0, 0, 1);
-            walls[3].position.set(0, 10, 100);
-            scene.add(walls[2]);
-                
+
+            for (i = 0; i < walls.length; i++) {
+                scene.add(walls[i].obj);
+            }
         }
 
         function computeEnd(base, thetas, joints) {
@@ -239,10 +313,70 @@
             renderer.setSize(width, height);
         }
 
-        function animate() {
 
+
+        function animate() {
+            var dt = 0.02;
+            var eps = 1e-1;
+            var cR = 1.0;
+            puck_1.vel.add(puck_1.force.clone().multiplyScalar(dt));
+            puck_1.pos.add(puck_1.vel.clone().multiplyScalar(dt));
+            puck_1.position.copy(puck_1.pos);
+            twoLinker1.target.copy(twoLinker1.body.worldToLocal(puck_1.position.clone()));
+            puckLight.position.copy(puck_1.pos);
+            puckLight.position.y += 10;
+            /*
+            console.log(" puck :");
+            console.log(puck.position);
+            console.log(" puck_1 :");
+            console.log(puck_1.position);
+            */
             requestAnimationFrame(animate);
-            updateArms()
+            updateArms();
+
+            var distance = puck_1.pos.clone().sub(end).length();
+
+            if (distance < 20) {
+                audio = document.getElementById("collisionsound");
+                audio.play();
+                if (hit != true) hit = true;
+
+                var offset = ((20 - distance) / 2) / distance;
+                var Voffset = puck_1.pos.clone().sub(end.clone()).multiplyScalar(offset);
+                puck_1.pos.add(Voffset);
+
+                var v = puck_1.pos.clone().sub(previousEndPuck.clone()).multiplyScalar(5 / dt);
+                puck_1.vel.copy(v);
+            } else {
+                var offset = ((20 - distance) / 2) / distance;
+                var Voffset = puck_1.pos.clone().sub(end.clone()).multiplyScalar(offset);
+                var v = puck_1.vel.clone().sub(puck_1.pos.clone().sub(end).multiplyScalar(puck_1.vel.clone().sub(vel).dot(puck_1.pos.clone().sub(end)) / Math.pow(puck_1.pos.clone().sub(end).length(), 2)));
+                puck_1.pos.add(Voffset);
+                puck_1.vel.copy(v);
+            }
+
+            var distance1 = puck_1.pos.clone().sub(end1).length();
+
+            if (distance1 < 20) {
+                audio.document.getElementById("collisionsound");
+                audio.play();
+                var offset1 = ((20 - distance1) / 2) / distance1;
+                var Voffset1 = puck_1.pos.clone().sub(end1.clone()).multiplyScalar(offset1);
+                var v = puck_1.vel.clone().multiplyScalar(-1);
+                puck_1.pos.add(Voffset1);
+                puck_1.vel.copy(v);
+            }
+
+            for (i = 0; i < walls.length; i++) {
+                let wallb = walls[i];
+                if (puck_1.pos.clone().sub(wallb.getPoint).dot(wallb.getNormal) < eps + 15) {
+                    audio = document.getElementById("collisionsound");
+                    sudio.play();
+                    var vN = wallb.getNormal.clone().multiplyScalar(puck_1.vel.dot(wallb.getNormal));
+                    var vT = puck_1.vel.clone().sub(vN);
+                    puck_1.vel.copy(vT.add(vN.multiplyScalar(-cR)));
+                }
+            }
             render();
         }
 
@@ -257,11 +391,11 @@
             twoLinker0.ccdSys.solve(twoLinker0.target, thetas0);
             twoLinker0.update(thetas0)
             // how to get end effector position
-            let endNow = twoLinker0.link2.localToWorld(twoLinker0.endBall.position.clone());
+            end = twoLinker0.link2.localToWorld(twoLinker0.puck.position.clone());
 
             // how to get end effector velocity
-            let vel = endNow.clone().sub(previousEnd).divideScalar(deltaT);
-            console.log(vel.x.toFixed(1) + ',' + vel.z.toFixed(1))
+            vel = end.clone().sub(previousEnd).divideScalar(deltaT);
+            //console.log(vel.x.toFixed(1) + ',' + vel.z.toFixed(1))
 
 
             // linker1
@@ -271,15 +405,16 @@
             twoLinker1.update(thetas1)
 
             // how to get end effector position
-            endNow = twoLinker1.link2.localToWorld(twoLinker1.endBall.position.clone());
+            end1 = twoLinker1.link2.localToWorld(twoLinker1.puck.position.clone());
             // how to get end effector velocity
-            vel = endNow.clone().sub(previousEnd).divideScalar(deltaT);
-            console.log(vel.x.toFixed(1) + ',' + vel.z.toFixed(1))
+            vel1 = end.clone().sub(previousEnd1).divideScalar(deltaT);
+            //console.log(vel.x.toFixed(1) + ',' + vel.z.toFixed(1))
 
 
             now = newTime;
-            previousEnd.copy(endNow);
-
+            previousEnd.copy(end);
+            previousEnd1.copy(end1);
+            previousEndPuck.copy(puck_1.pos);
         }
 
 
@@ -301,9 +436,13 @@
             var intersects = raycaster.intersectObjects(pickables);
             if (intersects.length > 0) {
                 puck.position.copy(intersects[0].point);
+                if (hit == false) {
+                    puck_1.pos.copy(intersects[0].point);
+                    puck_1.pos.y = 5;
+                }
                 //twoLinker.target.copy (intersects[0].point);
                 // this is not enough ...
-
+                puck_1.position.copy(intersects[0].point);
                 twoLinker0.target.copy(twoLinker0.body.worldToLocal(puck.position.clone()))
                 twoLinker1.target.copy(twoLinker1.body.worldToLocal(puck.position.clone()))
             }
