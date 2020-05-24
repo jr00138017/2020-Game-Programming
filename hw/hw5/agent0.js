@@ -26,7 +26,7 @@ class Agent {
             this.mesh = agentMesh(halfSize, 'red');
         } else if (number == 1) {
             this.name = "car1"
-             this.mesh = agentMesh(halfSize, 'blue');
+            this.mesh = agentMesh(halfSize, 'blue');
         }
         this.pos = pos.clone();
         this.vel = new THREE.Vector3();
@@ -71,18 +71,14 @@ class Agent {
             const REACH = this.MAXSPEED * 1.5;
             const K = 5;
 
-            if (proj > 0 && proj < REACH /*&& proj < minProj */ ) {
-
-                //minProj = proj;
+            if (proj > 0 && proj < REACH) {
                 let perp = new THREE.Vector3();
                 perp.subVectors(point, vhat.clone().setLength(proj));
                 let overlap = obs[i].size + this.halfSize - perp.length();
                 if (overlap > 0) {
                     perp.setLength(K * overlap);
                     perp.negate();
-                    //minPerp.copy(perp);
                     this.force.add(perp);
-                    //console.log("hit: ", perp);
                 }
             }
         }
